@@ -46,13 +46,14 @@
 #include <cstdio>  // std::snprintf(), std::fprintf(), stdout, stderr
 #include <cstdlib> // std::abort()
 #include <cstring>
+#include <cstdint>
 
 namespace mediasoupclient
 {
 	class Logger
 	{
 	public:
-		enum class LogLevel : u_int8_t
+		enum class LogLevel : uint8_t
 		{
 			LOG_NONE  = 0,
 			LOG_ERROR = 1,
