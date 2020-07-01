@@ -41,6 +41,8 @@ namespace mediasoupclient
 		  webrtc::RtpSenderInterface* rtpSender,
 		  webrtc::MediaStreamTrackInterface* track,
 		  const nlohmann::json& rtpParameters,
+		  bool disableTrackOnPause,
+		  bool zeroRtpOnPause,
 		  const nlohmann::json& appData);
 
 	public:
@@ -63,7 +65,8 @@ namespace mediasoupclient
 
 	private:
 		void TransportClosed();
-
+		void HandleTrack(); // wip
+		void DestroyTrack(); // wip
 		/* SendTransport will create instances and call private member TransportClosed */
 		friend SendTransport;
 
@@ -88,6 +91,8 @@ namespace mediasoupclient
 		bool paused{ false };
 		// Video Max spatial layer.
 		uint8_t maxSpatialLayer{ 0 };
+		bool disableTrackOnPause;
+		bool zeroRtpOnPause;
 		// App custom data.
 		nlohmann::json appData;
 	};

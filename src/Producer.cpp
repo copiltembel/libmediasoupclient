@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 namespace mediasoupclient
 {
-	Producer::Producer(
+		Producer::Producer(
 	  Producer::PrivateListener* privateListener,
 	  Producer::Listener* listener,
 	  const std::string& id,
@@ -16,10 +16,14 @@ namespace mediasoupclient
 	  webrtc::RtpSenderInterface* rtpSender,
 	  webrtc::MediaStreamTrackInterface* track,
 	  const json& rtpParameters,
+	  bool disableTrackOnPause,
+	  bool zeroRtpOnPause,
 	  const json& appData)
 	  : privateListener(privateListener), listener(listener), id(id), localId(localId),
-	    rtpSender(rtpSender), track(track), rtpParameters(rtpParameters), appData(appData)
+	    rtpSender(rtpSender), track(track), rtpParameters(rtpParameters), 
+		disableTrackOnPause(disableTrackOnPause), zeroRtpOnPause(zeroRtpOnPause), appData(appData)
 	{
+        this->paused = disableTrackOnPause ? !track->enabled() : false;
 		MSC_TRACE();
 	}
 
@@ -76,7 +80,7 @@ namespace mediasoupclient
 	{
 		MSC_TRACE();
 
-		return !this->track->enabled();
+		return this->paused;
 	}
 
 	uint8_t Producer::GetMaxSpatialLayer() const
@@ -130,7 +134,15 @@ namespace mediasoupclient
 			return;
 		}
 
-		this->track->set_enabled(false);
+		this->paused = true;
+		if (this->track && this->disableTrackOnPause) {
+			this->track->set_enabled(false);
+		}
+		if (this->zeroRtpOnPause) {
+			try {
+				this->privateListener->OnReplaceTrack(this, nullptr);
+			} catch (const std::exception&) { /* */ }
+		}
 	}
 
 	/**
@@ -147,7 +159,15 @@ namespace mediasoupclient
 			return;
 		}
 
-		this->track->set_enabled(true);
+		this->paused = false;
+		if (this->track && this->disableTrackOnPause) {
+			this->track->set_enabled(true);
+		}
+		if (this->zeroRtpOnPause) {
+			try {
+				this->privateListener->OnReplaceTrack(this, this->track);
+			} catch (const std::exception&) { /* */ }
+		}
 	}
 
 	/**
@@ -172,8 +192,18 @@ namespace mediasoupclient
 			return;
 		}
 
-		// May throw.
-		this->privateListener->OnReplaceTrack(this, track);
+		if (track == this->track) {
+			MSC_DEBUG("ReplaceTrack() | same track, ignored");
+			return;
+		}
+
+		if (!this->zeroRtpOnPause || !this->paused) {
+			// May throw.
+			this->privateListener->OnReplaceTrack(this, track);
+		}
+
+		this->DestroyTrack();
+		this->track = track;
 
 		// Keep current paused state.
 		auto paused = IsPaused();
@@ -183,10 +213,12 @@ namespace mediasoupclient
 
 		// If this Producer was paused/resumed and the state of the new
 		// track does not match, fix it.
-		if (!paused)
-			this->track->set_enabled(true);
-		else
-			this->track->set_enabled(false);
+		if (this->track && this->disableTrackOnPause) {
+			if (!paused)
+				this->track->set_enabled(true);
+			else
+				this->track->set_enabled(false);
+		}
 	}
 
 	/**
@@ -223,5 +255,24 @@ namespace mediasoupclient
 		this->closed = true;
 
 		this->listener->OnTransportClose(this);
+	}
+
+	void Producer::HandleTrack() {
+		if (!this->track) {
+			return;
+		}
+		// this->track->OnTrackEnded
+	}
+
+	void Producer::DestroyTrack() {
+		if (!this->track)
+            return;
+        // try {
+        //     this->track.removeEventListener('ended', this._onTrackEnded);
+        //     // Just stop the track unless the app set stopTracks: false.
+        //     if (this._stopTracks)
+        //         this._track.stop();
+        // }
+        // catch (error) { }
 	}
 } // namespace mediasoupclient
