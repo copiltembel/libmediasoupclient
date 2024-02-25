@@ -24,6 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(MEDIASOUPCLIENT_BUILD_TESTS "Build unit tests" OFF)
 option(MEDIASOUPCLIENT_LOG_TRACE   "Enable MSC_LOG_TRACE (See Logger.hpp)" OFF)
 option(MEDIASOUPCLIENT_LOG_DEV     "Enable MSC_LOG_DEV (See Logger.hpp)" OFF)
+option(USE_CUSTOM_LIBC_FROM_LIBWEBRTC "Use custom libc++ from libwebrtc - this will disable linking against the (default) system libc++" OFF)
 
 # Project configuration.
 set(LIBWEBRTC_INCLUDE_PATH "" CACHE STRING "libwebrtc include path")
@@ -43,6 +44,7 @@ message(STATUS "MEDIASOUPCLIENT_LOG_TRACE   : " ${MEDIASOUPCLIENT_LOG_TRACE})
 message(STATUS "MEDIASOUPCLIENT_LOG_DEV     : " ${MEDIASOUPCLIENT_LOG_DEV})
 message(STATUS "LIBWEBRTC_INCLUDE_PATH      : " ${LIBWEBRTC_INCLUDE_PATH})
 message(STATUS "LIBWEBRTC_BINARY_PATH       : " ${LIBWEBRTC_BINARY_PATH})
+message(STATUS "USE_CUSTOM_LIBC_FROM_LIBWEBRTC:       : " ${USE_CUSTOM_LIBC_FROM_LIBWEBRTC})
 message("")
 
 # GCC >= 4.9 is required due to std::regex use.
@@ -93,6 +95,81 @@ set(
 	include/sdp/Utils.hpp
 )
 
+if (${USE_CUSTOM_LIBC_FROM_LIBWEBRTC}) 
+	set(CUSTOM_LIBC_OBJ_FILES
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/algorithm.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/any.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/atomic.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/barrier.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/bind.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/charconv.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/chrono.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/condition_variable_destructor.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/condition_variable.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/d2fixed.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/d2s.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/directory_entry.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/directory_iterator.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/error_category.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/exception.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/f2s.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/filesystem_clock.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/filesystem_error.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/functional.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/future.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/hash.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/ios.instantiations.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/ios.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/iostream.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/legacy_pointer_safety.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/locale.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/memory.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/mutex_destructor.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/mutex.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/new_handler.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/new_helpers.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/new.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/operations.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/optional.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/path.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/random.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/random_shuffle.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/regex.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/shared_mutex.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/stdexcept.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/string.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/strstream.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/system_error.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/thread.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/typeinfo.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/valarray.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/variant.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/vector.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++/libc++/verbose_abort.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/abort_message.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_aux_runtime.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_default_handlers.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_demangle.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_exception.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_exception_storage.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_guard.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_handlers.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_personality.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_thread_atexit.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_vector.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/cxa_virtual.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/fallback_malloc.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/private_typeinfo.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/stdlib_exception.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/stdlib_stdexcept.o
+		${LIBWEBRTC_BINARY_PATH}/buildtools/third_party/libc++abi/libc++abi/stdlib_typeinfo.o	
+	)
+
+	set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
+	set(CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES "")
+
+endif()
+
 # Create target.
 add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
 
@@ -139,6 +216,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 # Public (interface) dependencies.
 target_link_libraries(${PROJECT_NAME} PUBLIC
+	${CUSTOM_LIBC_OBJ_FILES}
 	sdptransform
 	${LIBWEBRTC_BINARY_PATH}/libwebrtc${CMAKE_STATIC_LIBRARY_SUFFIX}
 )
